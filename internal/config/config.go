@@ -9,7 +9,17 @@ import (
 
 type Config struct {
 	Server   ServerConfig
+	Database DatabaseConfig
 	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
+}
+
+type DatabaseConfig struct {
+	URL             string        `envconfig:"DATABASE_URL" default:"postgres://auction:auctionpass@localhost:5432/auction?sslmode=disable"`
+	MaxConns        int           `envconfig:"DATABASE_MAX_CONNS" default:"10"`
+	MinConns        int           `envconfig:"DATABASE_MIN_CONNS" default:"2"`
+	MaxConnIdleTime time.Duration `envconfig:"DATABASE_MAX_CONN_IDLE_TIME" default:"15m"`
+	MaxConnLifetime time.Duration `envconfig:"DATABASE_MAX_CONN_LIFETIME" default:"1h"`
+	HealthTimeout   time.Duration `envconfig:"DATABASE_HEALTH_TIMEOUT" default:"5s"`
 }
 
 type ServerConfig struct {
