@@ -10,4 +10,5 @@ type Repository interface {
 	SetBanned(ctx context.Context, id int64, banned bool, reason string) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*User, error)
+	WithTx(tx DBTX) Repository
 }
