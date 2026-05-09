@@ -44,18 +44,15 @@ type AuthResponse struct {
 
 // Регистрирует пользователя. Используем для атомарности транзакцию.
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*AuthResponse, error) {
-	// 1. Открываем транзакцию
 	tx, err := s.pool.Begin(ctx)
-
 	if err != nil {
-		return nil, fmt.Errorf("Начало транзакции: %w", err)
+		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx) // откатим при какой либо ошибке при выполнении транзакции. Commit отменит Rollback
+	defer tx.Rollback(ctx)
 
-	// 2. Хешируем пароль, выполняем до вызовов бд так как медленная операция
 	hashed, err := s.hasher.Hash(req.Password)
 	if err != nil {
-		return nil, fmt.Errorf("Произошла ошибка при хешировании пароля: %w", err)
+		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
 	role := req.Role
@@ -70,39 +67,34 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*AuthRespo
 		Role:         role,
 	}
 
-	// 3. Создаем запись пользователя через транзакционный репозиторий
-	txRepo := s.repo.WithTx(tx)
-	if err := txRepo.Create(ctx, u); err != nil {
+	// Репозиторий пользователя внутри транзакции
+	txUserRepo := s.repo.WithTx(tx)
+	if err := txUserRepo.Create(ctx, u); err != nil {
 		if errors.Is(err, ErrAlreadyExist) {
 			return nil, ErrAlreadyExist
 		}
-
-		return nil, fmt.Errorf("Ошибка создания пользователя: %w", err)
+		return nil, fmt.Errorf("create user: %w", err)
 	}
 
-	// 4. Генерируем пару токенов
 	access, err := s.tokens.GenerateAccessToken(u.ID, u.Email, u.Role)
-
 	if err != nil {
-		return nil, fmt.Errorf("Произошла ошибка при генерации пары токенов: %w", err)
+		return nil, fmt.Errorf("generate access token: %w", err)
 	}
-
 	refresh, err := s.tokens.GenerateRefreshToken(u.ID)
 	if err != nil {
-		return nil, fmt.Errorf("Произошла ошибка при генерации рефреш токена: %w", err)
+		return nil, fmt.Errorf("generate refresh token: %w", err)
 	}
 
-	// 5. Сохраняем хеш рефреш-токена (в этой же транзакции)
+	// Репозиторий токенов внутри той же транзакции
+	txTokenRepo := s.tokenRepo.WithTx(tx)
 	refreshHash := hashToken(refresh)
 	expiresAt := time.Now().Add(s.tokens.RefreshTTL())
-
-	if err := s.tokenRepo.Store(ctx, u.ID, refreshHash, expiresAt); err != nil {
-		return nil, fmt.Errorf("Ошибка сохранения хэша рефреш токена: %w", err)
+	if err := txTokenRepo.Store(ctx, u.ID, refreshHash, expiresAt); err != nil {
+		return nil, fmt.Errorf("store refresh token: %w", err)
 	}
 
-	// 6. Фиксируем транзакцию
 	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("Транзакция завершилась провалом: %w", err)
+		return nil, fmt.Errorf("commit tx: %w", err)
 	}
 
 	return &AuthResponse{

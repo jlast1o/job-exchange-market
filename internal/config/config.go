@@ -10,7 +10,15 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
-	LogLevel string `envconfig:"LOG_LEVEL" default:"info"`
+	Auth     AuthConfig // <-- добавлено
+	LogLevel string     `envconfig:"LOG_LEVEL" default:"info"`
+}
+
+type ServerConfig struct {
+	Port            int           `envconfig:"SERVER_PORT" default:"8080"`
+	ReadTimeout     time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"5s"`
+	WriteTimeout    time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"10s"`
+	ShutdownTimeout time.Duration `envconfig:"SERVER_SHUTDOWN_TIMEOUT" default:"15s"`
 }
 
 type DatabaseConfig struct {
@@ -22,11 +30,10 @@ type DatabaseConfig struct {
 	HealthTimeout   time.Duration `envconfig:"DATABASE_HEALTH_TIMEOUT" default:"5s"`
 }
 
-type ServerConfig struct {
-	Port            int           `envconfig:"SERVER_PORT" default:"8080"`
-	ReadTimeout     time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"5s"`
-	WriteTimeout    time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"10s"`
-	ShutdownTimeout time.Duration `envconfig:"SERVER_SHUTDOWN_TIMEOUT" default:"15s"`
+type AuthConfig struct {
+	JWTSecret       string        `envconfig:"JWT_SECRET" default:"change-me-to-a-random-string"`
+	AccessTokenTTL  time.Duration `envconfig:"JWT_ACCESS_TTL" default:"15m"`
+	RefreshTokenTTL time.Duration `envconfig:"JWT_REFRESH_TTL" default:"72h"`
 }
 
 func Load() (*Config, error) {
@@ -34,6 +41,5 @@ func Load() (*Config, error) {
 	if err := envconfig.Process("", &cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
-
 	return &cfg, nil
 }

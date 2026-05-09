@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 
@@ -40,6 +41,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, user.ErrAlreadyExist):
 			respondError(w, http.StatusConflict, "Пользователь уже существует")
 		default:
+			log.Printf("Registration error: %v", err)
 			respondError(w, http.StatusInternalServerError, "Внутренняя ошибка")
 		}
 		return

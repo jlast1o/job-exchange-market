@@ -18,7 +18,7 @@ func NewPostgresRepository(db DBTX) *PostgresRepository {
 	return &PostgresRepository{db: db}
 }
 
-func (r *PostgresRepository) WithTx(tx DBTX) *PostgresRepository {
+func (r *PostgresRepository) WithTx(tx DBTX) Repository {
 	return &PostgresRepository{db: tx}
 }
 

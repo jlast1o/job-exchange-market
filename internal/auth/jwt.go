@@ -14,7 +14,7 @@ type TokenGenerator struct {
 	refreshTTL time.Duration
 }
 
-func NewTokenGerenerator(secret string, accessTTL, refreshTTL time.Duration) *TokenGenerator {
+func NewTokenGenerator(secret string, accessTTL, refreshTTL time.Duration) *TokenGenerator {
 	return &TokenGenerator{
 		secret:     []byte(secret),
 		accessTTL:  accessTTL,

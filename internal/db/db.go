@@ -47,5 +47,5 @@ func NewPool(ctx context.Context, cfg Config, log *zap.Logger) (*pgxpool.Pool, e
 		zap.String("URL", cfg.URL),
 		zap.Int("max_conns", cfg.MaxConns),
 	)
-
+	return pool, nil
 }
